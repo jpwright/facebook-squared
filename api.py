@@ -1,20 +1,21 @@
 import serial
 import re
-import time
 
 def waitforack(ser, cmd):
-    line = ""
-    while line != ".z"+cmd:
+    line = ser.readline()
+    while line != ".z"+cmd+"\r\n":
         line = ser.readline()
-        time.sleep(1)
         print "waiting for ack..."
         print "heard: "+line
+    print "acknowledged."
 
 def lcd(msg):
     msg = "".join([x if ord(x) < 128 else '?' for x in msg]) #strips non-ASCII characters
     regex = re.compile("\<[a-z]\>")
-    numBrackets = len(regex.findall(msg))*2
+    numBrackets = len(regex.findall(msg))*3
     msg = msg[:16+numBrackets+6] #16 char screens, plus room for brackets, plus command bytes
+    if msg.endswith("\n") == False:
+        msg = msg+"\n"
     return msg
 
 def cb(msg):
@@ -75,16 +76,27 @@ def printlines(linearray, firstline, start, num, ser):
                     out = ".w"+line2id(start+i-firstline)+line+"\n"
                     linenum += 1
                     cut = "no:"+str(linenum)
-            if firstPrint:
-                firstPrint = False
-            else:
-                waitforack(ser, "w")
+            #if firstPrint:
+                #firstPrint = False
+            #else:
+                #waitforack(ser, "w")
             print lcd(out)
             ser.write(lcd(out))
+            waitforack(ser, "w")
 
     #print lcd(out)
     print "printline cut: "+cut
     return cut
+
+def clearscreens(ser):
+    print "clearing screens"
+    for i in range(0,3):
+        ser.write(".wt,"+str(i)+",                \n")
+        waitforack(ser, "w")
+    for j in range(1,4):
+        for k in range(0,4):
+            ser.write(".w"+str(j)+","+str(k)+",                \n")
+            waitforack(ser, "w")
 
 def post2checkin(post):
     msg = "<p>"+cb(post["name"])
@@ -168,6 +180,9 @@ def printitem(newsfeed, itemnum, inCut, ser):
                     numcomments = len(comments)
                     for j in range(cmtNumStart,numcomments):
                         comment = comments[j]
+                        likes = 0
+                        if "likes" in comment:
+                            likes = comment["likes"]
                         commentstring = "<c>"
                         commentstring += cb(comment["from"]["name"])+": "
                         commentstring += "\""+cb(comment["message"])+"\""
