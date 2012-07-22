@@ -43,6 +43,7 @@ int display_height = 48;
 //+1 = next
 //0  = neutral
 int lastTurnState = 0;
+unsigned long lastMillis = 0;
 
 //Selection Buttons
 #define BUTTON1  42
@@ -154,10 +155,10 @@ void setup()
   //http://www.adafruit.com/products/338
   
   //Serial interface to Computer Via USB (for debugging only)
-  DEBUG.begin(9600);
+  DEBUG.begin(57600);
   
   //Serial interface to XBEE for Data transmit and receive
-  XBEE.begin(9600);
+  XBEE.begin(57600);
   
   //LED Setup
   pinMode(DEBUGLED, OUTPUT);
@@ -287,22 +288,27 @@ void loop()
   /*********************************
   * PAGE TURN DETECTION
   **********************************/
-  int currentYval = analogRead(ACCELY);
-  if ((currentYval < YDOWNTHRESH) && lastTurnState == 0)
+  //We don't wanna run this constantly.  Use millis
+  if (millis() > lastMillis + 500)
   {
-    XBEE.println(".p");
-    DEBUG.println("Previous Entry Requested");
-    lastTurnState = -1;
-  }
-  else if ((currentYval > YUPTHRESH) && lastTurnState == 0)
-  {
-    XBEE.println(".n");
-    DEBUG.println("Next Entry Requested");
-    lastTurnState = 1;
-  }
-  else if ((currentYval <= YUPTHRESH) && (currentYval >= YDOWNTHRESH))
-  {
-    lastTurnState = 0;
+    int currentYval = analogRead(ACCELY);
+    if ((currentYval < YDOWNTHRESH) && lastTurnState == 0)
+    {
+      XBEE.println(".p");
+      DEBUG.println("Previous Entry Requested");
+      lastTurnState = -1;
+    }
+    else if ((currentYval > YUPTHRESH) && lastTurnState == 0)
+    {
+      XBEE.println(".n");
+      DEBUG.println("Next Entry Requested");
+      lastTurnState = 1;
+    }
+    else if ((currentYval <= YUPTHRESH) && (currentYval >= YDOWNTHRESH))
+    {
+      lastTurnState = 0;
+    }
+    lastMillis = millis();
   }
   
   /*********************************
