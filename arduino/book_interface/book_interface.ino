@@ -51,6 +51,38 @@ LiquidCrystal lcd1(RS, EN1, D4, D5, D6, D7);
 LiquidCrystal lcd2(RS, EN2, D4, D5, D6, D7);
 LiquidCrystal lcd3(RS, EN3, D4, D5, D6, D7);
 
+//LCD Special Characters
+byte like[8] = {
+ B00000,
+ B00100,
+ B00100,
+ B11011,
+ B11001,
+ B11001,
+ B11111,
+};
+
+byte comment[8] = {
+ B11111,
+ B10001,
+ B10001,
+ B10001,
+ B11111,
+ B01100,
+ B01000,
+};
+
+
+byte place[8] = {
+ B01110,
+ B10001,
+ B10101,
+ B10001,
+ B01110,
+ B01110,
+ B00100,
+};
+
 void setup()
 {
   //Setup interface to the Adafruit Visual Display
