@@ -63,7 +63,6 @@ while(1):
         num = int(line[1:2])
         itemnum = num+newsfeedstart
         printitem(newsfeed, itemnum, ser)
-        print itemnum
         userid = newsfeed["data"][itemnum]["from"]["id"]
         pictureUrl = fbconsole.graph_url("/"+userid+"/picture")
         urllib.urlretrieve(pictureUrl, "profile.jpg")

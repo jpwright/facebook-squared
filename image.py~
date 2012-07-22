@@ -1,0 +1,4 @@
+import Image
+
+im = Image.open("http://graph.facebook.com/jpwright/picture")
+im.show()
