@@ -1,5 +1,10 @@
 //Jeremy Blum & Jason Wright
-//Facebook NYC Summer Hack-a-Thon 7/21/2012
+//Facebook NYC Summer Hack-a-Thon 7/21-22/2012
+
+//Libraries
+#include <LiquidCrystal.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_PCD8544.h>
 
 //Serial Definitions
 #define DEBUG Serial
@@ -18,6 +23,16 @@
 #define  D5     24
 #define  D6     23
 #define  D7     22
+
+//Graphical LCD
+#define GLCD_SCLK  34
+#define GLCD_DIN   35
+#define GLCD_DC    36
+#define GLCD_CS    37
+#define GLCD_RST   38
+Adafruit_PCD8544 display = Adafruit_PCD8544(GLCD_SCLK, GLCD_DIN, GLCD_DC, GLCD_CS, GLCD_RST);
+int display_width = 84;
+int display_height = 48;
 
 //Selection Buttons
 #define BUTTON1  42
@@ -45,7 +60,6 @@ boolean currentLikeButton = LOW;
 boolean bookOpen = false;
 
 //LCD Setup
-#include <LiquidCrystal.h>
 LiquidCrystal lcdtop(RS, ENTOP, D4, D5, D6, D7);
 LiquidCrystal lcd1(RS, EN1, D4, D5, D6, D7);
 LiquidCrystal lcd2(RS, EN2, D4, D5, D6, D7);
@@ -61,7 +75,6 @@ byte like[8] = {
  B11001,
  B11111,
 };
-
 byte comment[8] = {
  B11111,
  B10001,
@@ -71,8 +84,6 @@ byte comment[8] = {
  B01100,
  B01000,
 };
-
-
 byte place[8] = {
  B01110,
  B10001,
@@ -81,6 +92,15 @@ byte place[8] = {
  B01110,
  B01110,
  B00100,
+};
+byte squared[8] = {
+ B11000,
+ B00100,
+ B01000,
+ B10000,
+ B11100,
+ B00000,
+ B00000,
 };
 
 void setup()
@@ -97,12 +117,29 @@ void setup()
   //LED Setup
   pinMode(DEBUGLED, OUTPUT);
   
+  //Setup Graphical LCD
+  display.setContrast(50);
+  display.clearDisplay();
+  
   //Setup interface to the multiple Parallel LCD interfaces
   lcdtop.begin(16, 2);
   lcd1.begin(16, 4);
   lcd2.begin(16, 4);
   lcd3.begin(16, 4);
   DEBUG.println("Program Start");
+  
+  //Setup LCD Special Characters for all necessary LCDs
+  lcdtop.createChar(0, like);
+  lcd1.createChar(0, like);
+  lcd2.createChar(0, like);
+  lcd3.createChar(0, like);
+  lcd1.createChar(1, comment);
+  lcd2.createChar(1, comment);
+  lcd3.createChar(1, comment);
+  lcd1.createChar(2, place);
+  lcd2.createChar(2, place);
+  lcd3.createChar(2, place);
+  lcdtop.createChar(3, squared);
 }
 void loop()
 { 
@@ -122,10 +159,14 @@ void loop()
     lcd1.setCursor(0,0);
     lcd2.setCursor(0,0);
     lcd3.setCursor(0,0);
-    lcdtop.print("This is faceBOOK");
+    lcdtop.print("Welcome to");
     lcdtop.setCursor(0,1);
-    lcdtop.print("Jeremy");
+    lcdtop.print("face(book)");
+    lcdtop.setCursor(10,1);
+    lcdtop.write(3);
     delay(2000);
+    XBEE.println(".f"); //Request the feed data.
+    DEBUG.println("Feed Requested.");
   }
   //Book has been Closed
   else if(!digitalRead(COVERDETECT) && bookOpen)
@@ -142,6 +183,132 @@ void loop()
     lcdtop.print("Peace Out.");
   }
   
+  //Checking the Buttons
+  currentHomeButton = debounce(lastHomeButton, HOMEBUTTON);
+  if (lastHomeButton == LOW && currentHomeButton == HIGH)
+  {
+    XBEE.println(".f");
+    DEBUG.println("Feed Requested");
+  }
+  lastHomeButton = currentHomeButton;
   
   
+  //Serial Reading
+  if (Serial.available())
+  {
+    //Wait until we have received a '.', indicating the start of a command
+    while (Serial.read() != '.'); //Throw away any data before the '.'
+    while (Serial.available() == 0); //Wait till we've got some data
+    //Read in the command byte
+    int val = Serial.read();
+    
+    //Hello Response
+    if (val == 'h')
+    {
+      String text = readString();
+      lcdtop.setCursor(0,0);
+      lcdtop.print("Connected as:");
+      lcdtop.setCursor(0,1);
+      lcdtop.print(text);
+      XBEE.println("zh"); //Success
+    }
+    
+    //Write to LCD
+    if (val == 'w')
+    {
+      while(!XBEE.available());
+      int display_id = XBEE.read();
+      while(!XBEE.available());
+      int line_num = XBEE.read() - '0';
+      String text = readString();
+      //Write the info to the appropriate LCD Location
+      if (display_id == 't')
+      {
+        lcdtop.setCursor(0,line_num);
+        lcdtop.print(text);
+      }
+      else if (display_id == '1')
+      {
+        lcd1.setCursor(0,line_num);
+        lcd1.print(text);
+      }
+      else if (display_id == '2')
+      {
+        lcd2.setCursor(0,line_num);
+        lcd2.print(text);
+      }
+      else if (display_id == '3')
+      {
+        lcd3.setCursor(0,line_num);
+        lcd3.print(text);
+      }
+      DEBUG.print("\"");
+      DEBUG.print(text);
+      DEBUG.print("\" Printed to Display# ");
+      DEBUG.print(display_id);
+      DEBUG.print(" on line ");
+      DEBUG.println(line_num);
+      XBEE.println("zw"); //success
+    }
+    
+    //Graphical LCD Control
+    if (val == 'g')
+    {
+      display.clearDisplay();
+      boolean done = false;
+      String command = "";
+      int x = 17;
+      int y = 0;
+      while(!done) {
+        while(!XBEE.available());
+        int strchar = XBEE.read();
+        if(strchar == '\n') {
+          done = true;
+        } else {
+           if(strchar == '1' && y < 49) {
+             display.drawPixel(x, y, BLACK);
+           }
+           if(x<66) {
+             x++;
+           } else {
+             x = 17;
+             y++;
+           }
+        }
+      }
+      display.display();
+      XBEE.println("zg"); //success
+    }
+  }
+}
+
+String readString ()
+{
+  while(!XBEE.available());
+  boolean done = false;
+  String text = "";
+  int pos = 0;
+  //Read 16 chars, then stop
+  while(!done) {
+    while(!XBEE.available());
+    int strchar = XBEE.read();
+    if(strchar == '\n') {
+      done = true;
+    } else {
+       text[pos] = strchar;
+       pos++;
+    }
+  }
+  return text;
+}
+
+boolean debounce(boolean last, int buttonPin)
+{
+  boolean current = digitalRead(buttonPin);
+  if (last != current)
+  {
+    delay(5);
+    current = digitalRead(buttonPin);
+  }
+  return current;
 }

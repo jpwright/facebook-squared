@@ -11,9 +11,10 @@ Serial Interface Documentation
   * first character indicates the command
   * followed by comma seperated arguments
   * Computer can only repond to requests from the hardware
+  * Arduino responds on executions completed with 'z' ACK character followed the same command char plus a newline
 * From the Hardware
   * Hello 									= .h\n
-  * Request Feed 							= .f[number of screens]\n
+  * Request Feed 							= .f\n
   * Expand Item								= .e[feed # to expand]\n 
   * Next Item (contextual)					= .n\n
   * Previous Item (contextual)				= .p\n
@@ -25,3 +26,10 @@ Serial Interface Documentation
   * Return Feed Contents					= .f[string for display 1],[string for display 2],[etc]...\n
   * Return Expanded View Contents			= .e[string for display 1],[string for display 2],[etc]...\n
   * Return Graphical Display Binary Data	= .g[binary data string representing all pixels]\n
+  * Write a line to a display			 	= .w[display ID char (t,1,2,3)],[display line # char (0,1,2,3),[String of Data]\n
+  
+ External Resouces
+ -----------------
+ Adafruit Graphical LCD Arduino Library:  
+ * https://github.com/adafruit/Adafruit-PCD8544-Nokia-5110-LCD-library
+ * https://github.com/adafruit/Adafruit-GFX-Library
