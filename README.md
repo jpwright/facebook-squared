@@ -13,13 +13,13 @@ Serial Interface Documentation
   * Computer can only repond to requests from the hardware
   * Arduino responds on executions completed with 'z' ACK character followed the same command char plus a newline
 * Special Characters, there is never more than one on a line
-  * 0 <l> is like
-  * 1 <c> is comment
-  * 2 <p> is place
-  * 3 <s> is squared
-  * 4 <u> is link
-  * 5 <d> is desc [DEPRECATED]
-  * 6 <e> is ellipsis (...)
+  * 0 <l> is like  
+  * 1 <c> is comment  
+  * 2 <p> is place  
+  * 3 <s> is squared  
+  * 4 <u> is link  
+  * 5 <d> is desc [DEPRECATED]  
+  * 6 <e> is ellipsis (...)  
 * From the Hardware
   * Hello 									= .h\n
   * Request Feed 							= .f\n
