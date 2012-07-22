@@ -22,6 +22,8 @@ print "communicating on "+ser.portstr
 
 print "listening"
 
+bannedTypes = ["photo", "video"]
+
 displaying = "none"
 
 while(1):
@@ -35,35 +37,41 @@ while(1):
     if line.startswith("f"):
         newsfeed = fbconsole.get('/me/home')
         newsfeedData = newsfeed["data"]
-        it = iter(newsfeedData)
+        nfDataClean = newsfeedData
+        it = iter(nfDataClean)
         #for i in range(0, len(newsfeedData)-2): #last entry is paging stuff
         try:
             while 1:
                 newsItem = it.next()
                 #print newsItem["id"]
-                if newsItem["type"] == "photo":
+                if newsItem["type"] in bannedTypes:
                     newsfeed["data"].remove(newsItem)
         except StopIteration:
             x = 0
         newsfeedstart = 0
         displaying = "feed"
         printnews(newsfeed, newsfeedstart, ser)
+        header = ".wt0News Feed\n.wt1----------------"
+        ser.write(header)
     if line.startswith("n"):
         if displaying == "feed":
             newsfeedstart += 3
             printnews(newsfeed, newsfeedstart, ser)
+            header = ".wt0News Feed\n.wt1----------------"
+            ser.write(header)
         if displaying == "post":
             x = 0
             #print comments, tbd
     if line.startswith("p"):
         if(newsfeedstart>0):
             newsfeedstart -= 3
+            header = ".wt0News Feed\n.wt1----------------"
+            ser.write(header)
         printnews(newsfeed, newsfeedstart, ser)
     if line.startswith("e"):
-        num = int(line[1:2])
+        num = int(line[1:2])-1
         itemnum = num+newsfeedstart
         printitem(newsfeed, itemnum, ser)
-        print itemnum
         userid = newsfeed["data"][itemnum]["from"]["id"]
         pictureUrl = fbconsole.graph_url("/"+userid+"/picture")
         urllib.urlretrieve(pictureUrl, "profile.jpg")
@@ -81,7 +89,7 @@ while(1):
                     imsg += "1"
         imsg += "\n"
         print "writing image"
-        print imsg
+        #print imsg
         ser.write(imsg)
         displaying = "post"
         

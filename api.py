@@ -1,27 +1,53 @@
 import serial
 import re
 
-def splitlines(msg, start, num):
+def line2id(line):
+    if line < 2:
+        return "t"+str(line)
+    else:
+        lineRel = line-2
+        screen = lineRel/4 + 1
+        linenum = lineRel%4
+        return str(screen)+str(linenum)
+        
+
+def splitlines(msg):
     words = msg.split(" ")
-    out = ""
+    linearray = []
     line = ""
-    linenum = 0
+    regex = re.compile("\<[a-z]\>")
     for i in range(0, len(words)):
         word = words[i]
-        if (line+word).__len__() < 17:
+        #print word
+        if (line+word).__len__()-len(regex.findall(line+word))*2 < 17:
             line = line + word + " "
         else:
-            line = line[:16]
-            if linenum < num-1:
-                out += ".p"+str(start+linenum)+line+"\n"
-            if linenum == num-1:
-                out += ".p"+str(start+linenum)+line[:13]+"...\n"
+            line = line.strip()
+            #out += ".p"+line2id(start+linenum)+line+"\n"
+            linearray.append(line)
             line = word + " "
-            linenum += 1
-    return out
+    linearray.append(line.strip())
+    return linearray
             
+def printlines(linearray, start, num):
+    #for i in range(0, len(linearray)):
+        #print linearray[i]
+    out = ""
+    linenum = 0
+    numlines = len(linearray)
+    for i in range(0, num):
+        if i < numlines:
+            line = linearray[i]
+            if linenum < num-1:
+                out += ".w"+line2id(start+i)+line+"\n"
+                linenum += 1
+            else:
+                regex = re.compile("\<[a-z]\>")
+                numBrackets = len(regex.findall(line))*2
+                out += ".w"+line2id(start+i)+line[:13+numBrackets]+"...\n"
+    return out
 
-def printcheckin(post):
+def post2checkin(post):
     msg = "<p>"+post["name"]
     if "with_tags" in post:
         people = post["with_tags"]
@@ -46,9 +72,9 @@ def printnews(newsfeed, start, ser):
             if ("name" in post) and ("description" in post):
                 msg += "<l>"+post["name"]+", "+post["description"]
         if post["type"] == "checkin":
-            msg += printcheckin(post)
+            msg += post2checkin(post)
         msg = "".join([x if ord(x) < 128 else '?' for x in msg]) #strips non-ASCII characters
-        msg = splitlines(msg.replace("\n"," "), (i-start)*4, 4)
+        msg = printlines(splitlines(msg.replace("\n"," ")), ((i-start)*4)+2, 4)
         ser.write(msg)
         print msg
 
@@ -56,12 +82,13 @@ def printitem(newsfeed, itemnum, ser):
     print itemnum
     msg = ""
     post = newsfeed["data"][itemnum]
-    top = post["from"]["name"].strip()
+    top = post["from"]["name"]
     if "likes" in post:
-        top += "<l>"+str(post["likes"]["count"])
-    top = splitlines(top, 0, 2)
-    print top
-    msg += top
+        top += " <l>"+str(post["likes"]["count"])
+    print "Name/Likes: "+top
+    msg += printlines(splitlines(top), 0, 2)
+    #print top
+    #msg += top
     
     text = ""
     try:
@@ -70,9 +97,9 @@ def printitem(newsfeed, itemnum, ser):
         if post["type"] == "link":
             text += "<u>"+post["name"]+"<d>"+post["description"]
         if post["type"] == "checkin":
-            text += printcheckin(post)
+            text += post2checkin(post)
 
-        text = splitlines(text.replace("\n"," "), 2, 12)
+        text = printlines(splitlines(text.replace("\n"," ")), 2, 12)
         msg += text
         commentstart = 1 + len(text.split("\n"))
         if "comments" in post:
@@ -82,10 +109,10 @@ def printitem(newsfeed, itemnum, ser):
                 numcomments = len(comments)
                 for j in range(0,min(numcomments,6)):
                     comment = comments[j]
-                    commentstring == "<c>"
+                    commentstring = "<c>"
                     commentstring += comment["from"]["name"]+": "
                     commentstring += "\""+comment["message"]+"\""
-                    commentstring = splitlines(commentstring.replace("\n", " "), commentstart, 12-commentstart)
+                    commentstring = printlines(splitlines(commentstring.replace("\n", " ")), commentstart, 12-commentstart)
                     msg += commentstring
                     commentstart = commentstart + len(commentstring.split("\n")) -1
     except KeyError:
