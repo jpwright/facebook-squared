@@ -183,7 +183,10 @@ void loop()
     lcdtop.print("Peace Out.");
   }
   
-  //Checking the Buttons
+  /*********************************
+  * BUTTON CHECKING W/ DEBOUNCING 
+  **********************************/
+  //Home Button
   currentHomeButton = debounce(lastHomeButton, HOMEBUTTON);
   if (lastHomeButton == LOW && currentHomeButton == HIGH)
   {
@@ -192,6 +195,41 @@ void loop()
   }
   lastHomeButton = currentHomeButton;
   
+  //Like Button
+  currentLikeButton = debounce(lastLikeButton, LIKEBUTTON);
+  if (lastLikeButton == LOW && currentLikeButton == HIGH)
+  {
+    XBEE.println(".l");
+    DEBUG.println("You liked this Story");
+  }
+  lastLikeButton = currentLikeButton;
+  
+  //Screen 1 Button
+  currentButton1 = debounce(lastButton1, BUTTON1);
+  if (lastButton1 == LOW && currentButton1 == HIGH)
+  {
+    XBEE.println(".e1");
+    DEBUG.println("Story 1 Expansion Requested");
+  }
+  lastButton1 = currentButton1;
+  
+  //Screen 2 Button
+  currentButton2 = debounce(lastButton2, BUTTON2);
+  if (lastButton2 == LOW && currentButton2 == HIGH)
+  {
+    XBEE.println(".e2");
+    DEBUG.println("Story 2 Expansion Requested");
+  }
+  lastButton2 = currentButton2;
+  
+  //Screen 3 Button
+  currentButton3 = debounce(lastButton3, BUTTON3);
+  if (lastButton3 == LOW && currentButton3 == HIGH)
+  {
+    XBEE.println(".e3");
+    DEBUG.println("Story 3 Expansion Requested");
+  }
+  lastButton3 = currentButton3;
   
   //Serial Reading
   if (Serial.available())
