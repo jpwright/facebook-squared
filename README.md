@@ -19,7 +19,9 @@ Serial Interface Documentation
   * Previous Item (contextual)				= .p\n
   * "Like" Item (contextual)				= .l\n
   * Request Graphical Display Contents  	= .g\n
+  * Close									= .c\n
 * From the Computer
+  * Hello ID								= .h[String containing User First Name]\n
   * Return Feed Contents					= .f[string for display 1],[string for display 2],[etc]...\n
   * Return Expanded View Contents			= .e[string for display 1],[string for display 2],[etc]...\n
   * Return Graphical Display Binary Data	= .g[binary data string representing all pixels]\n

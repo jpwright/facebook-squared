@@ -1,26 +1,55 @@
 //Jeremy Blum & Jason Wright
 //Facebook NYC Summer Hack-a-Thon 7/21/2012
 
-//Definitions
+//Serial Definitions
 #define DEBUG Serial
 #define XBEE Serial1
 
-/* 
-  LCD
-  The circuit:
- * LCD RS pin to digital pin 27
- * LCD EN pin to digital pin 26
- * LCD D4 pin to digital pin 25
- * LCD D5 pin to digital pin 24
- * LCD D6 pin to digital pin 23
- * LCD D7 pin to digital pin 22
- * LCD R/W pin to ground
- * 10K resistor:
- * ends to +5V and ground
- * wiper to LCD VO pin (pin 3)
- */
+//LEDs
+#define DEBUGLED  13
+
+//LCD Hookups
+#define  RS     27
+#define  ENTOP  26
+#define  EN1    50
+#define  EN2    51
+#define  EN3    52
+#define  D4     25
+#define  D5     24
+#define  D6     23
+#define  D7     22
+
+//Selection Buttons
+#define BUTTON1  42
+#define BUTTON2  43
+#define BUTTON3  44
+
+//Control Buttons
+#define HOMEBUTTON  45
+#define LIKEBUTTON  46
+
+//Cover Detect
+#define COVERDETECT  47
+
+//Debounce Tracking Variables
+boolean lastButton1 = LOW;
+boolean currentButton1 = LOW;
+boolean lastButton2 = LOW;
+boolean currentButton2 = LOW;
+boolean lastButton3 = LOW;
+boolean currentButton3 = LOW;
+boolean lastHomeButton = LOW;
+boolean currentHomeButton = LOW;
+boolean lastLikeButton = LOW;
+boolean currentLikeButton = LOW;
+boolean bookOpen = false;
+
+//LCD Setup
 #include <LiquidCrystal.h>
-LiquidCrystal lcd(27, 26, 25, 24, 23, 22);
+LiquidCrystal lcdtop(RS, ENTOP, D4, D5, D6, D7);
+LiquidCrystal lcd1(RS, EN1, D4, D5, D6, D7);
+LiquidCrystal lcd2(RS, EN2, D4, D5, D6, D7);
+LiquidCrystal lcd3(RS, EN3, D4, D5, D6, D7);
 
 void setup()
 {
@@ -33,16 +62,54 @@ void setup()
   //Serial interface to XBEE for Data transmit and receive
   XBEE.begin(9600);
   
+  //LED Setup
+  pinMode(DEBUGLED, OUTPUT);
+  
   //Setup interface to the multiple Parallel LCD interfaces
-  lcd.begin(16, 2);
-  // Print a message to the LCD.
-  lcd.print("Jeremy's Display");
-  lcd.setCursor(0,1);
-  lcd.print("The PhysiBook");
+  lcdtop.begin(16, 2);
+  lcd1.begin(16, 4);
+  lcd2.begin(16, 4);
+  lcd3.begin(16, 4);
+  DEBUG.println("Program Start");
 }
 void loop()
-{
-  //Serial Communication Debug
-  //DEBUG.println("Test to the Debug");
-  //XBEE.println("Test via XBEE");
+{ 
+  //Check to see if the Book was just opened.  If so, clear all and Display Welcome Messages.
+  //If the Cover is open...
+  if(digitalRead(COVERDETECT) && !bookOpen)
+  {
+    digitalWrite(DEBUGLED, HIGH);
+    bookOpen = true;
+    DEBUG.println("The Book has been Opened");
+    XBEE.println(".h"); //Tell python we're starting up fresh.
+    lcdtop.clear();
+    lcd1.clear();
+    lcd2.clear();
+    lcd3.clear();
+    lcdtop.setCursor(0,0);
+    lcd1.setCursor(0,0);
+    lcd2.setCursor(0,0);
+    lcd3.setCursor(0,0);
+    lcdtop.print("This is faceBOOK");
+    lcdtop.setCursor(0,1);
+    lcdtop.print("Jeremy");
+    delay(2000);
+  }
+  //Book has been Closed
+  else if(!digitalRead(COVERDETECT) && bookOpen)
+  {
+    digitalWrite(DEBUGLED, LOW);
+    bookOpen = false;
+    DEBUG.println("The Book has been Closed");
+    XBEE.println(".c"); //Tell python we've closed the book.
+    lcdtop.clear();
+    lcd1.clear();
+    lcd2.clear();
+    lcd3.clear();
+    lcdtop.setCursor(0,0);
+    lcdtop.print("Peace Out.");
+  }
+  
+  
+  
 }
