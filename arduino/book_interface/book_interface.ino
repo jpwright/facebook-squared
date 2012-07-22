@@ -34,6 +34,16 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(GLCD_SCLK, GLCD_DIN, GLCD_DC, GLCD_C
 int display_width = 84;
 int display_height = 48;
 
+//Accelerometer Setup
+#define ACCELY       15
+#define YNEUTRAL     347
+#define YDOWNTHRESH  315
+#define YUPTHRESH    375
+//-1 = previous
+//+1 = next
+//0  = neutral
+int lastTurnState = 0;
+
 //Selection Buttons
 #define BUTTON1  42
 #define BUTTON2  43
@@ -102,6 +112,41 @@ byte squared[8] = {
  B00000,
  B00000,
 };
+byte link[8] = {
+ B00000,
+ B00100,
+ B00010,
+ B11111,
+ B00010,
+ B00100,
+ B00000,
+};
+byte desc[8] = {
+ B00000,
+ B01000,
+ B01100,
+ B01110,
+ B01100,
+ B01000,
+ B00000,
+};
+byte ellipsis[8] = {
+ B00000,
+ B00000,
+ B00000,
+ B00000,
+ B00000,
+ B00000,
+ B10101,
+};
+
+//Special Character location temp variables
+int likeIndex = -1;
+int commentIndex = -1;
+int placeIndex = -1;
+int linkIndex = -1;
+int descIndex = -1;
+int ellipsisIndex = -1;
 
 void setup()
 {
@@ -118,6 +163,7 @@ void setup()
   pinMode(DEBUGLED, OUTPUT);
   
   //Setup Graphical LCD
+  display.begin();
   display.setContrast(50);
   display.clearDisplay();
   
@@ -140,6 +186,15 @@ void setup()
   lcd2.createChar(2, place);
   lcd3.createChar(2, place);
   lcdtop.createChar(3, squared);
+  lcd1.createChar(4, link);
+  lcd2.createChar(4, link);
+  lcd3.createChar(4, link);
+  lcd1.createChar(5, desc);
+  lcd2.createChar(5, desc);
+  lcd3.createChar(5, desc);
+  lcd1.createChar(6, ellipsis);
+  lcd2.createChar(6, ellipsis);
+  lcd3.createChar(6, ellipsis);
 }
 void loop()
 { 
@@ -165,8 +220,6 @@ void loop()
     lcdtop.setCursor(10,1);
     lcdtop.write(3);
     delay(2000);
-    XBEE.println(".f"); //Request the feed data.
-    DEBUG.println("Feed Requested.");
   }
   //Book has been Closed
   else if(!digitalRead(COVERDETECT) && bookOpen)
@@ -231,14 +284,37 @@ void loop()
   }
   lastButton3 = currentButton3;
   
-  //Serial Reading
-  if (Serial.available())
+  /*********************************
+  * PAGE TURN DETECTION
+  **********************************/
+  int currentYval = analogRead(ACCELY);
+  if ((currentYval < YDOWNTHRESH) && lastTurnState == 0)
+  {
+    XBEE.println(".p");
+    DEBUG.println("Previous Entry Requested");
+    lastTurnState = -1;
+  }
+  else if ((currentYval > YUPTHRESH) && lastTurnState == 0)
+  {
+    XBEE.println(".n");
+    DEBUG.println("Next Entry Requested");
+    lastTurnState = 1;
+  }
+  else if ((currentYval <= YUPTHRESH) && (currentYval >= YDOWNTHRESH))
+  {
+    lastTurnState = 0;
+  }
+  
+  /*********************************
+  * SERIAL COMMUNICATION PROTOCOL
+  **********************************/
+  if (XBEE.available())
   {
     //Wait until we have received a '.', indicating the start of a command
-    while (Serial.read() != '.'); //Throw away any data before the '.'
-    while (Serial.available() == 0); //Wait till we've got some data
+    while (XBEE.read() != '.'); //Throw away any data before the '.'
+    while (XBEE.available() == 0); //Wait till we've got some data
     //Read in the command byte
-    int val = Serial.read();
+    int val = XBEE.read();
     
     //Hello Response
     if (val == 'h')
@@ -247,8 +323,12 @@ void loop()
       lcdtop.setCursor(0,0);
       lcdtop.print("Connected as:");
       lcdtop.setCursor(0,1);
-      lcdtop.print(text);
-      XBEE.println("zh"); //Success
+      lcdtop.print(text.substring(0,16)); // we should only print up to 16 chars max.
+      DEBUG.println("Connection Established");
+      XBEE.println(".zh"); //Success
+      delay(1000);
+      //We're live!  Ask for news.
+      XBEE.println(".f");
     }
     
     //Write to LCD
@@ -256,37 +336,43 @@ void loop()
     {
       while(!XBEE.available());
       int display_id = XBEE.read();
+      while(XBEE.read() != ',');
       while(!XBEE.available());
       int line_num = XBEE.read() - '0';
+      while(XBEE.read() != ',');
       String text = readString();
       //Write the info to the appropriate LCD Location
       if (display_id == 't')
       {
         lcdtop.setCursor(0,line_num);
-        lcdtop.print(text);
+        lcdtop.print("                ");
+        LCDPrintWithSpecialChars(lcdtop, text, line_num);
       }
       else if (display_id == '1')
       {
         lcd1.setCursor(0,line_num);
-        lcd1.print(text);
+        lcd1.print("                ");
+        LCDPrintWithSpecialChars(lcd1, text, line_num);
       }
       else if (display_id == '2')
       {
         lcd2.setCursor(0,line_num);
-        lcd2.print(text);
+        lcd2.print("                ");
+        LCDPrintWithSpecialChars(lcd2, text, line_num);
       }
       else if (display_id == '3')
       {
         lcd3.setCursor(0,line_num);
-        lcd3.print(text);
+        lcd3.print("                ");
+        LCDPrintWithSpecialChars(lcd3, text, line_num);
       }
       DEBUG.print("\"");
       DEBUG.print(text);
-      DEBUG.print("\" Printed to Display# ");
-      DEBUG.print(display_id);
+      DEBUG.print("\" Printed to Display #");
+      DEBUG.write(display_id);
       DEBUG.print(" on line ");
       DEBUG.println(line_num);
-      XBEE.println("zw"); //success
+      XBEE.println(".zw"); //success
     }
     
     //Graphical LCD Control
@@ -315,29 +401,113 @@ void loop()
         }
       }
       display.display();
-      XBEE.println("zg"); //success
+      XBEE.println(".zg"); //success
     }
   }
 }
 
+//Reads string in from Buffer.
+//Note, they could be longer than 18 chars because we use special chars sequences for special graphics
+//There will never be more than one special char per line.
 String readString ()
 {
+  likeIndex = -1;
+  commentIndex = -1;
+  placeIndex = -1;
+  linkIndex = -1;
+  descIndex = -1;
+  ellipsisIndex = -1;
   while(!XBEE.available());
   boolean done = false;
-  String text = "";
+  char buffer[16] = "              ";
   int pos = 0;
-  //Read 16 chars, then stop
-  while(!done) {
+  boolean special_coming = false;
+  //Read up to 18 chars, then stop
+  while(!done && pos < 16) {
     while(!XBEE.available());
     int strchar = XBEE.read();
     if(strchar == '\n') {
       done = true;
     } else {
-       text[pos] = strchar;
-       pos++;
+      if (strchar != '<' && strchar != '>')
+      {
+        buffer[pos] = strchar;
+        pos++;
+      }
+      if (strchar == '<')
+      {
+        special_coming = true;
+      }
+      else if (special_coming)
+      {
+        special_coming = false;
+        if (strchar == 'l') likeIndex = pos-1;
+        if (strchar == 'c') commentIndex = pos-1;
+        if (strchar == 'p') placeIndex = pos-1;
+        if (strchar == 'u') linkIndex = pos-1;
+        if (strchar == 'e') ellipsisIndex = pos-1;
+      }
     }
   }
+  if (!done) while(XBEE.read() != '\n');
+  String text = buffer;
   return text;
+}
+
+void LCDPrintWithSpecialChars(LiquidCrystal LCD, String text, int line_num)
+{
+  LCD.setCursor(0,line_num);
+  text = text.substring(0,16);
+  //like
+  if (likeIndex != -1)
+  {
+    LCD.setCursor(likeIndex,line_num);
+    LCD.write((byte)0x0);
+    LCD.setCursor(0,line_num);
+    LCD.print(text.substring(0,likeIndex));
+    LCD.setCursor(likeIndex+1,line_num);
+    LCD.print(text.substring(likeIndex+1));
+  }
+  else if (commentIndex != -1)
+  {
+    LCD.setCursor(commentIndex,line_num);
+    LCD.write(1);
+    LCD.setCursor(0,line_num);
+    LCD.print(text.substring(0,commentIndex));
+    LCD.setCursor(commentIndex+1,line_num);
+    LCD.print(text.substring(commentIndex+1));
+  }
+  else if(placeIndex != -1)
+  {
+    LCD.setCursor(placeIndex,line_num);
+    LCD.write(2);
+    LCD.setCursor(0,line_num);
+    LCD.print(text.substring(0,placeIndex));
+    LCD.setCursor(placeIndex+1,line_num);
+    LCD.print(text.substring(placeIndex+1));
+  }
+  else if(linkIndex != -1)
+  {
+    LCD.setCursor(linkIndex,line_num);
+    LCD.write(4);
+    LCD.setCursor(0,line_num);
+    LCD.print(text.substring(0,linkIndex));
+    LCD.setCursor(linkIndex+1,line_num);
+    LCD.print(text.substring(linkIndex+1));
+  }
+  else if(ellipsisIndex != -1)
+  {
+    LCD.setCursor(ellipsisIndex,line_num);
+    LCD.write(6);
+    LCD.setCursor(0,line_num);
+    LCD.print(text.substring(0,ellipsisIndex));
+    LCD.setCursor(ellipsisIndex+1,line_num);
+    LCD.print(text.substring(ellipsisIndex+1));
+  }
+  else
+  {
+    LCD.print(text);
+  }
 }
 
 boolean debounce(boolean last, int buttonPin)
@@ -350,3 +520,4 @@ boolean debounce(boolean last, int buttonPin)
   }
   return current;
 }
+
