@@ -26,6 +26,9 @@ bannedTypes = ["photo", "video"]
 
 displaying = "none"
 
+cutnum = 0
+cuts = ["no"]
+
 while(1):
     #ser.write("hello")
     #print "hello"
@@ -51,27 +54,45 @@ while(1):
         newsfeedstart = 0
         displaying = "feed"
         printnews(newsfeed, newsfeedstart, ser)
-        header = ".wt0News Feed\n.wt1----------------"
-        ser.write(header)
+        ser.write(".wt,0,News Feed\n")
+        waitforack(ser, "w")
+        ser.write(".wt,1,----------------\n")
+        waitforack(ser, "w")
     if line.startswith("n"):
         if displaying == "feed":
             newsfeedstart += 3
+            ser.write(".wt,0,News Feed\n")
+            waitforack(ser, "w")
+            ser.write(".wt,1,----------------\n")
+            waitforack(ser, "w")
             printnews(newsfeed, newsfeedstart, ser)
-            header = ".wt0News Feed\n.wt1----------------"
-            ser.write(header)
         if displaying == "post":
-            x = 0
+            print cuts
+            cutNext = cuts[cutnum+1]
+            if cutNext != "no":
+                cuts.append(printitem(newsfeed, itemnum, cutNext, ser))
+                cutnum += 1
             #print comments, tbd
     if line.startswith("p"):
         if(newsfeedstart>0):
             newsfeedstart -= 3
-            header = ".wt0News Feed\n.wt1----------------"
-            ser.write(header)
-        printnews(newsfeed, newsfeedstart, ser)
+            ser.write(".wt,0,News Feed\n")
+            waitforack(ser, "w")
+            ser.write(".wt,1,----------------\n")
+            waitforack(ser, "w")
+            printnews(newsfeed, newsfeedstart, ser)
+        if displaying == "post":
+            print cuts
+            if cutnum > 0:
+                printitem(newsfeed, itemnum, cuts[cutnum-1], ser)
+                cutnum -= 1
     if line.startswith("e"):
         num = int(line[1:2])-1
         itemnum = num+newsfeedstart
-        printitem(newsfeed, itemnum, ser)
+        cuts = ["no"]
+        cutnum = 0
+        cuts.append(printitem(newsfeed, itemnum, "no", ser))
+        #print cutNext
         userid = newsfeed["data"][itemnum]["from"]["id"]
         pictureUrl = fbconsole.graph_url("/"+userid+"/picture")
         urllib.urlretrieve(pictureUrl, "profile.jpg")
@@ -91,5 +112,6 @@ while(1):
         print "writing image"
         #print imsg
         ser.write(imsg)
+        waitforack(ser, "i")
         displaying = "post"
         
