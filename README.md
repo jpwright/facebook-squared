@@ -28,7 +28,7 @@ Book Hardware Contents
 
 System Operation Scheme
 -----------------------
-1. Book is opened triggering release of limit switch
+1. Book is opened, triggering release of limit switch
 2. MCU says hello to the computer via Xbee
 3. User logs into facebook on computer, which authenticates them via OAuth.  Username is passed to book for display
 4. Book requests the news feed
@@ -85,4 +85,5 @@ Serial Interface Documentation
  ---------------------------------
  There is known issue with addressing 16x4 LCDS
  See Here: http://www.arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1253367247/6
- This fix was applied
+ This fix was applied: int row_offsets[] = { 0x00, 0x40, 0x10, 0x50 };
+ Note that this will probably prevent 20x4 LCDs from working.
