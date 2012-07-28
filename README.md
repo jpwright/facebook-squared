@@ -73,13 +73,17 @@ Serial Interface Documentation
   * Return Graphical Display Binary Data	= .g[binary data string representing all pixels]\n
   * Write a line to a display			 	= .w[display ID char (t,1,2,3)],[display line # char (0,1,2,3),[String of Data]\n
   
- External Resouces
- -----------------
- Adafruit Graphical LCD Arduino Library:  
- * https://github.com/adafruit/Adafruit-PCD8544-Nokia-5110-LCD-library
- * https://github.com/adafruit/Adafruit-GFX-Library
- Facebook Console:  
- * https://github.com/facebook/fbconsole
+ External Resouces for Arduino
+ -----------------------------
+ * Adafruit Graphical LCD Arduino Library: https://github.com/adafruit/Adafruit-PCD8544-Nokia-5110-LCD-library
+ * Adafruit GFX Library: https://github.com/adafruit/Adafruit-GFX-Library
+ 
+ External Resources for Python
+ -----------------------------
+ * Facebook Console: https://github.com/facebook/fbconsole
+ * SimpleJson Module: https://github.com/simplejson/simplejson
+ * pySerial Module: http://pyserial.sourceforge.net/
+ * 
  
  LiquidCrystal Arduino Library Mod
  ---------------------------------

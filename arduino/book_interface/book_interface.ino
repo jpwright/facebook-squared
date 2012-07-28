@@ -37,7 +37,7 @@ int display_height = 48;
 //Accelerometer Setup
 #define ACCELY       15
 #define YNEUTRAL     347
-#define YDOWNTHRESH  315
+#define YDOWNTHRESH  340
 #define YUPTHRESH    375
 //-1 = previous
 //+1 = next
