@@ -1,7 +1,11 @@
 import serial
 from urllib2 import urlopen
 from simplejson import loads
-import fbconsole
+from urllib import urlretrieve
+import imp
+urlretrieve('https://raw.github.com/facebook/fbconsole/master/src/fbconsole.py',
+                '.fbconsole.py')
+fbconsole = imp.load_source('fb', '.fbconsole.py')
 import serial
 import time
 from api import *
@@ -13,7 +17,7 @@ import urllib
 
 fbconsole.AUTH_SCOPE = ['read_stream', 'publish_stream']
 fbconsole.authenticate()
-print "authenticated"
+#print "authenticated"
 
 port = "/dev/pts/5"
 port = "/dev/ttyACM0"
